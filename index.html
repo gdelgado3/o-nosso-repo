@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Radar de Mercado</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Layout: faixa azul com cabeçalho; grelha de 2 colunas (pressupostos | resultados), uma coluna abaixo de 640px */
+  :root {
+    --azul: #175FAA;
+    --azul-escuro: #0944A1;
+    --cartao: #F6F6F6;
+    --texto: #3D4F6B;
+    --destaque: #74D1EF;
+    --claro: #F6F6F6;
+    --claro-2: #E2EEFF;
+    --filete-azul: #4D85C2;
+    --filete-claro: #C9DAEE;
+    --aviso: #B4540A;
+    --aviso-fundo: #FFF1E3;
+    --ok: #1E7A4F;
+    --ok-fundo: #E5F5EC;
+    --fonte: "Montserrat", "Segoe UI", system-ui, sans-serif;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--azul); color: var(--claro); font-family: var(--fonte); font-size: 15px; line-height: 1.5; }
+  .wrap {
+    max-width: 1180px; margin: 0 auto;
+    padding-block: 28px 20px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex; flex-direction: column; gap: 24px;
+  }
+
+  /* Cabeçalho */
+  header h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+  .barra { width: 120px; height: 6px; border-radius: 3px; background: var(--destaque); margin: 12px 0 14px; }
+  header p { margin: 0; max-width: 62ch; color: var(--claro-2); }
+  .etiqueta-exemplo { display: inline-block; margin-top: 12px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--azul-escuro); background: var(--destaque); padding: 3px 10px; border-radius: 999px; }
+
+  /* Grelha principal */
+  .grelha { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 24px; align-items: start; }
+  .coluna { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  .cartao { background: var(--cartao); color: var(--texto); border-radius: 12px; padding: 20px; min-width: 0; }
+  .cartao h2 { margin: 0 0 14px; color: var(--azul); font-size: 17px; font-weight: 700; }
+  .cartao h3 { margin: 18px 0 10px; color: var(--azul); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .cartao h3:first-of-type { margin-top: 0; }
+  .divisor { border: 0; border-top: 1px solid var(--filete-claro); margin: 18px 0; }
+
+  /* Formulário */
+  .campo { display: flex; flex-direction: column; gap: 4px; }
+  .campos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .campos .largo { grid-column: 1 / -1; }
+  label { font-size: 13px; font-weight: 600; color: var(--texto); }
+  .ajuda { font-size: 12px; color: #5D6E88; }
+  input, select {
+    font: inherit; color: var(--texto); background: #fff;
+    border: 1px solid var(--filete-claro); border-radius: 8px; padding: 9px 10px; width: 100%;
+  }
+  input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px solid var(--destaque); outline-offset: 2px; }
+  .sufixo { position: relative; }
+  .sufixo input { padding-right: 42px; }
+  .sufixo span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #5D6E88; pointer-events: none; }
+
+  .segmentado { display: flex; border: 1px solid var(--filete-claro); border-radius: 8px; overflow: hidden; background: #fff; }
+  .segmentado button {
+    flex: 1; font: inherit; font-size: 13px; font-weight: 600; border: 0; background: transparent; color: var(--texto);
+    padding: 9px 6px; cursor: pointer; border-right: 1px solid var(--filete-claro);
+  }
+  .segmentado button:last-child { border-right: 0; }
+  .segmentado button[aria-pressed="true"] { background: var(--azul); color: var(--claro); }
+
+  /* Regiões */
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button {
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 999px;
+    padding: 6px 12px; border: 1px solid var(--filete-claro); background: #fff; color: var(--texto);
+  }
+  .chips button small { font-weight: 400; color: #5D6E88; margin-left: 4px; }
+  .chips button[aria-pressed="true"] { background: var(--azul); border-color: var(--azul); color: var(--claro); }
+  .chips button[aria-pressed="true"] small { color: var(--claro-2); }
+
+  /* Botões */
+  .botoes { display: flex; flex-wrap: wrap; gap: 10px; }
+  .btn { font: inherit; font-weight: 700; font-size: 14px; border: 0; border-radius: 8px; padding: 10px 16px; cursor: pointer; background: var(--destaque); color: var(--azul-escuro); }
+  .btn:hover { filter: brightness(1.05); }
+  .btn.secundario { background: transparent; color: var(--claro); border: 1px solid var(--filete-azul); }
+  .msg { font-size: 13px; color: var(--claro-2); min-height: 1.5em; }
+
+  /* Resultados em destaque */
+  .resumo { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: 1px solid var(--filete-azul); border-radius: 12px; }
+  .metrica { padding: 18px 18px 14px; border-right: 1px solid var(--filete-azul); min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .metrica:last-child { border-right: 0; }
+  .metrica .sigla { font-size: 13px; font-weight: 800; letter-spacing: 0.08em; color: var(--claro-2); }
+  .metrica .nome { font-size: 12px; color: var(--claro-2); }
+  .metrica .valor { font-size: clamp(24px, 3.2vw, 36px); font-weight: 800; color: var(--destaque); font-variant-numeric: tabular-nums; line-height: 1.15; margin-top: 6px; }
+  .metrica .razao { font-size: 12px; color: var(--claro-2); }
+  .metrica svg { margin-top: 8px; width: 100%; height: 38px; display: block; }
+
+  .controlo-ano { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .controlo-ano label { color: var(--claro); }
+  .controlo-ano input[type=range] { flex: 1; min-width: 160px; padding: 0; accent-color: var(--destaque); background: transparent; border: 0; }
+  .controlo-ano output { font-weight: 800; font-size: 20px; color: var(--destaque); font-variant-numeric: tabular-nums; }
+
+  /* Círculos + leitura */
+  .vista { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 20px; align-items: center; }
+  .vista svg { width: 100%; height: auto; max-width: 260px; }
+  .leitura { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .leitura li { display: grid; grid-template-columns: 14px 1fr; gap: 10px; align-items: start; font-size: 14px; }
+  .leitura .ponto { width: 14px; height: 14px; border-radius: 50%; margin-top: 3px; }
+  .leitura strong { color: var(--azul); }
+
+  /* Tabela */
+  .tabela-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--filete-claro); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--azul); }
+  tr.ativo td { background: #E2EEFF; font-weight: 700; }
+
+  /* Teste de realismo */
+  .avisos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .avisos li { padding: 10px 12px; border-radius: 8px; font-size: 14px; border-left: 4px solid; }
+  .avisos li.aviso { background: var(--aviso-fundo); border-color: var(--aviso); color: #6B3306; }
+  .avisos li.ok { background: var(--ok-fundo); border-color: var(--ok); color: #124A30; }
+
+  footer { font-size: 12px; color: var(--claro-2); padding-top: 8px; border-top: 1px solid var(--filete-azul); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+  @media (max-width: 860px) { .grelha { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 640px) {
+    .resumo { grid-template-columns: minmax(0, 1fr); }
+    .metrica { border-right: 0; border-bottom: 1px solid var(--filete-azul); }
+    .metrica:last-child { border-bottom: 0; }
+    .vista { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+    .campos { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Radar de Mercado · TAM / SAM / SOM</h1>
+    <div class="barra" aria-hidden="true"></div>
+    <p>Estima o tamanho de uma oportunidade de mercado ao longo do tempo. Para empreendedores e consultores que querem saber se uma ideia tem mercado que chegue.</p>
+    <span class="etiqueta-exemplo" id="etiquetaExemplo">Valores de exemplo, não são dados reais</span>
+  </header>
+
+  <div class="grelha">
+    <!-- Coluna de pressupostos -->
+    <form class="cartao" id="form" autocomplete="off">
+      <h2>Pressupostos</h2>
+
+      <h3>Mercado</h3>
+      <div class="campos">
+        <div class="campo largo">
+          <label for="setor">Mercado / setor</label>
+          <select id="setor"></select>
+          <span class="ajuda" id="setorNota"></span>
+        </div>
+        <div class="campo">
+          <label for="anoIni">Ano inicial</label>
+          <input id="anoIni" type="number" min="2000" max="2060" step="1">
+        </div>
+        <div class="campo">
+          <label for="anoFim">Ano final</label>
+          <input id="anoFim" type="number" min="2000" max="2060" step="1">
+        </div>
+        <div class="campo largo">
+          <label id="lblCenario">Cenário</label>
+          <div class="segmentado" role="group" aria-labelledby="lblCenario" id="cenario">
+            <button type="button" data-v="pess">Pessimista</button>
+            <button type="button" data-v="base">Base</button>
+            <button type="button" data-v="otim">Otimista</button>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divisor">
+      <h3>TAM · mercado total</h3>
+      <div class="campos">
+        <div class="campo largo">
+          <label id="lblMetodo">Método de cálculo</label>
+          <div class="segmentado" role="group" aria-labelledby="lblMetodo" id="metodo">
+            <button type="button" data-v="top">Top-down</button>
+            <button type="button" data-v="bottom">Bottom-up</button>
+          </div>
+          <span class="ajuda" id="metodoNota"></span>
+        </div>
+        <div class="campo largo" data-metodo="top">
+          <label for="tam0">TAM mundial no ano inicial</label>
+          <div class="sufixo"><input id="tam0" type="number" min="0" step="10"><span>M€</span></div>
+        </div>
+        <div class="campo" data-metodo="bottom">
+          <label for="clientes">Clientes potenciais (mundo)</label>
+          <input id="clientes" type="number" min="0" step="100">
+        </div>
+        <div class="campo" data-metodo="bottom">
+          <label for="preco">Receita anual / cliente</label>
+          <div class="sufixo"><input id="preco" type="number" min="0" step="10"><span>€</span></div>
+        </div>
+        <div class="campo largo">
+          <label for="cagr">Crescimento anual do mercado (CAGR)</label>
+          <div class="sufixo"><input id="cagr" type="number" step="0.5"><span>%</span></div>
+        </div>
+      </div>
+
+      <hr class="divisor">
+      <h3>SAM · o que consegues servir</h3>
+      <div class="campos">
+        <div class="campo largo">
+          <label id="lblRegioes">Onde vais vender</label>
+          <div class="chips" role="group" aria-labelledby="lblRegioes" id="regioes"></div>
+          <span class="ajuda">Cada região tem um peso de exemplo na procura mundial. A soma define o alcance geográfico.</span>
+        </div>
+        <div class="campo">
+          <label for="geo">Alcance geográfico</label>
+          <div class="sufixo"><input id="geo" type="number" min="0" max="100" step="0.1"><span>%</span></div>
+        </div>
+        <div class="campo">
+          <label for="seg">Público-alvo servível</label>
+          <div class="sufixo"><input id="seg" type="number" min="0" max="100" step="0.1"><span>%</span></div>
+        </div>
+        <div class="campo largo">
+          <label id="lblPublico">Público-alvo</label>
+          <div class="chips" role="group" aria-labelledby="lblPublico" id="publico"></div>
+          <span class="ajuda">Peso de exemplo de cada tipo de cliente na procura do setor. A soma define o público servível.</span>
+        </div>
+        <span class="ajuda largo">SAM = TAM × alcance geográfico × público-alvo servível. Podes escrever as percentagens à mão.</span>
+      </div>
+
+      <hr class="divisor">
+      <h3>SOM · o que consegues ganhar</h3>
+      <div class="campos">
+        <div class="campo">
+          <label for="q1">Quota no 1.º ano</label>
+          <div class="sufixo"><input id="q1" type="number" min="0" max="100" step="0.1"><span>%</span></div>
+        </div>
+        <div class="campo">
+          <label for="q2">Quota no último ano</label>
+          <div class="sufixo"><input id="q2" type="number" min="0" max="100" step="0.1"><span>%</span></div>
+        </div>
+        <span class="ajuda largo">Percentagem do SAM que esperas conquistar. Entre os dois anos cresce de forma linear.</span>
+      </div>
+    </form>
+
+    <!-- Coluna de resultados -->
+    <div class="coluna">
+      <div class="controlo-ano">
+        <label for="anoVer">Ver ano</label>
+        <input id="anoVer" type="range" step="1">
+        <output id="anoVerTxt" for="anoVer"></output>
+      </div>
+
+      <div class="resumo" aria-live="polite">
+        <div class="metrica">
+          <span class="sigla">TAM</span><span class="nome">Mercado total</span>
+          <span class="valor" id="vTam"></span><span class="razao" id="rTam"></span>
+          <svg id="sTam" viewBox="0 0 160 38" preserveAspectRatio="none" aria-hidden="true"></svg>
+        </div>
+        <div class="metrica">
+          <span class="sigla">SAM</span><span class="nome">Mercado servível</span>
+          <span class="valor" id="vSam"></span><span class="razao" id="rSam"></span>
+          <svg id="sSam" viewBox="0 0 160 38" preserveAspectRatio="none" aria-hidden="true"></svg>
+        </div>
+        <div class="metrica">
+          <span class="sigla">SOM</span><span class="nome">Mercado obtível</span>
+          <span class="valor" id="vSom"></span><span class="razao" id="rSom"></span>
+          <svg id="sSom" viewBox="0 0 160 38" preserveAspectRatio="none" aria-hidden="true"></svg>
+        </div>
+      </div>
+
+      <div class="botoes">
+        <button class="btn" type="button" id="btnCopiar">Copiar resultado</button>
+        <button class="btn" type="button" id="btnCsv">Exportar CSV</button>
+        <button class="btn secundario" type="button" id="btnRepor">Repor exemplo</button>
+      </div>
+      <div class="msg" id="msg" role="status"></div>
+
+      <section class="cartao">
+        <h2>Como se encaixam</h2>
+        <div class="vista">
+          <svg id="circulos" viewBox="0 0 260 260" role="img" aria-label="Círculos proporcionais de TAM, SAM e SOM"></svg>
+          <ul class="leitura" id="leitura"></ul>
+        </div>
+      </section>
+
+      <section class="cartao">
+        <h2>Teste de realismo</h2>
+        <ul class="avisos" id="avisos"></ul>
+      </section>
+
+      <section class="cartao">
+        <h2>Evolução ano a ano</h2>
+        <div class="tabela-wrap">
+          <table>
+            <thead><tr><th>Ano</th><th>TAM</th><th>SAM</th><th>Quota</th><th>SOM</th></tr></thead>
+            <tbody id="tabela"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <footer>
+    <span>Feito pela JUNITEC</span>
+    <span>Os teus pressupostos ficam guardados só neste browser (localStorage).</span>
+  </footer>
+</div>
+
+<script>
+/* ===== Dados de exemplo =====
+   Valores ILUSTRATIVOS para a app nunca abrir vazia.
+   Não são estimativas reais: substitui por dados de relatórios de mercado. */
+const SETORES = {
+  saas:      { nome: "Software B2B para PMEs",    tam: 42000, cagr: 12, clientes: 3500000, preco: 1200, regioes: ["pt", "es", "ue"], publico: ["pme"],              q1: 0.5, q2: 4 },
+  fintech:   { nome: "Pagamentos e fintech",      tam: 98000, cagr: 15, clientes: 20000000, preco: 60,  regioes: ["pt", "es"],       publico: ["jovens", "familias"], q1: 0.2, q2: 2 },
+  saude:     { nome: "Saúde digital",             tam: 61000, cagr: 18, clientes: 9000000, preco: 180,  regioes: ["pt", "es", "ue"], publico: ["seniores", "publico"], q1: 0.3, q2: 3 },
+  energia:   { nome: "Energia solar residencial", tam: 35000, cagr: 9,  clientes: 1200000, preco: 6500, regioes: ["pt", "es"],       publico: ["familias"],         q1: 0.4, q2: 2.5 },
+  edtech:    { nome: "Educação online (EdTech)",  tam: 27000, cagr: 14, clientes: 15000000, preco: 90,  regioes: ["pt", "brasil"],   publico: ["jovens"],           q1: 0.5, q2: 5 },
+  mobilidade:{ nome: "Mobilidade elétrica",       tam: 54000, cagr: 20, clientes: 4000000, preco: 900,  regioes: ["pt", "es", "ue"], publico: ["jovens", "grandes"], q1: 0.2, q2: 2 },
+  agro:      { nome: "Agrotech",                  tam: 19000, cagr: 11, clientes: 600000,  preco: 2500, regioes: ["pt", "es"],       publico: ["pme", "grandes"],   q1: 0.5, q2: 4 },
+  turismo:   { nome: "Turismo e experiências",    tam: 73000, cagr: 7,  clientes: 50000000, preco: 120, regioes: ["pt"],             publico: ["jovens", "familias"], q1: 0.1, q2: 1.5 },
+  custom:    { nome: "Personalizado",             tam: 1000,  cagr: 10, clientes: 100000,  preco: 500,  regioes: ["pt"],             publico: ["pme"],              q1: 1,   q2: 5 }
+};
+
+/* Peso ILUSTRATIVO de cada região na procura mundial (soma 100%) */
+const REGIOES = {
+  pt:      { nome: "Portugal",            peso: 0.3 },
+  es:      { nome: "Espanha",             peso: 1.5 },
+  ue:      { nome: "Resto da UE",         peso: 16 },
+  uk:      { nome: "Reino Unido",         peso: 3.5 },
+  ana:     { nome: "América do Norte",    peso: 30 },
+  brasil:  { nome: "Brasil e LATAM",      peso: 6 },
+  apac:    { nome: "Ásia-Pacífico",       peso: 33 },
+  mea:     { nome: "Médio Oriente e África", peso: 9.7 }
+};
+
+/* Peso ILUSTRATIVO de cada tipo de cliente na procura do setor (soma 100%) */
+const PUBLICOS = {
+  grandes:  { nome: "Grandes empresas",   peso: 25 },
+  pme:      { nome: "PMEs",               peso: 25 },
+  publico:  { nome: "Setor público",      peso: 10 },
+  jovens:   { nome: "Consumidores 18–34", peso: 15 },
+  familias: { nome: "Famílias",           peso: 15 },
+  seniores: { nome: "Seniores 65+",       peso: 10 }
+};
+
+/* Multiplicadores por cenário: mexem no crescimento e na quota */
+const CENARIOS = {
+  pess: { nome: "Pessimista", cagr: 0.6, quota: 0.6 },
+  base: { nome: "Base",       cagr: 1,   quota: 1 },
+  otim: { nome: "Otimista",   cagr: 1.35, quota: 1.4 }
+};
+
+const CHAVE = "junitec-radar-mercado-v2";
+const $ = (id) => document.getElementById(id);
+
+/* ===== Estado ===== */
+let estado = {};
+
+function estadoInicial() {
+  const ano = new Date().getFullYear();
+  return { setor: "saas", metodo: "top", cenario: "base", anoIni: ano, anoFim: ano + 5, anoVer: ano + 5, ...copiaSetor("saas") };
+}
+
+function copiaSetor(chave) {
+  const s = SETORES[chave];
+  return {
+    tam0: s.tam, cagr: s.cagr, clientes: s.clientes, preco: s.preco, q1: s.q1, q2: s.q2,
+    regioes: [...s.regioes], publico: [...s.publico],
+    geo: somaPesos(s.regioes, REGIOES), seg: somaPesos(s.publico, PUBLICOS)
+  };
+}
+
+/* Soma os pesos das opções escolhidas (arredonda a 1 casa) */
+function somaPesos(lista, tabela) {
+  return Math.round(lista.reduce((t, k) => t + (tabela[k] ? tabela[k].peso : 0), 0) * 10) / 10;
+}
+
+function carregar() {
+  try {
+    const guardado = JSON.parse(localStorage.getItem(CHAVE));
+    if (guardado && SETORES[guardado.setor]) return { ...estadoInicial(), ...guardado };
+  } catch (e) { /* sem localStorage: usa o exemplo */ }
+  return estadoInicial();
+}
+
+function guardar() {
+  try { localStorage.setItem(CHAVE, JSON.stringify(estado)); } catch (e) {}
+}
+
+/* ===== Cálculo ===== */
+function tamInicial() {
+  if (estado.metodo === "bottom") return (num(estado.clientes) * num(estado.preco)) / 1e6; // em M€
+  return num(estado.tam0);
+}
+
+function calcular() {
+  const c = CENARIOS[estado.cenario];
+  const g = (num(estado.cagr) * c.cagr) / 100;
+  const filtro = (limita(num(estado.geo)) / 100) * (limita(num(estado.seg)) / 100);
+  const q1 = limita(num(estado.q1) * c.quota) / 100;
+  const q2 = limita(num(estado.q2) * c.quota) / 100;
+  const n = estado.anoFim - estado.anoIni;
+  const tam0 = tamInicial();
+  const linhas = [];
+  for (let i = 0; i <= n; i++) {
+    const tam = tam0 * Math.pow(1 + g, i);
+    const sam = tam * filtro;
+    const quota = n === 0 ? q2 : q1 + (q2 - q1) * (i / n);
+    linhas.push({ ano: estado.anoIni + i, tam, sam, quota, som: sam * quota });
+  }
+  return { linhas, g, q1, q2 };
+}
+
+function num(v) { const x = parseFloat(v); return isFinite(x) ? x : 0; }
+function limita(x) { return Math.min(100, Math.max(0, x)); }
+
+/* Formata valores em M€ para leitura humana */
+function fmt(m) {
+  const pt = (x, d) => x.toLocaleString("pt-PT", { minimumFractionDigits: d, maximumFractionDigits: d });
+  if (m >= 1000) return pt(m / 1000, 1) + " mil M€";
+  if (m >= 1) return pt(m, m >= 100 ? 0 : 1) + " M€";
+  if (m >= 0.001) return pt(m * 1000, 0) + " mil €";
+  return pt(m * 1e6, 0) + " €";
+}
+function pct(x, d = 1) { return (x * 100).toLocaleString("pt-PT", { maximumFractionDigits: d }) + "%"; }
+
+/* ===== Interface ===== */
+function preencherSetores() {
+  $("setor").innerHTML = Object.entries(SETORES)
+    .map(([k, s]) => `<option value="${k}">${s.nome}</option>`).join("");
+}
+
+/* Desenha os botões de regiões e de público-alvo */
+function desenharChips(id, tabela, escolhidos) {
+  $(id).innerHTML = Object.entries(tabela).map(([k, o]) =>
+    `<button type="button" data-v="${k}" aria-pressed="${escolhidos.includes(k)}">${o.nome}<small>${o.peso.toLocaleString("pt-PT")}%</small></button>`
+  ).join("");
+}
+
+function nomes(lista, tabela) {
+  return lista.map((k) => tabela[k] && tabela[k].nome).filter(Boolean).join(", ") || "nenhum";
+}
+
+function escreverFormulario() {
+  desenharChips("regioes", REGIOES, estado.regioes);
+  desenharChips("publico", PUBLICOS, estado.publico);
+  ["setor", "anoIni", "anoFim", "tam0", "clientes", "preco", "cagr", "geo", "seg", "q1", "q2"]
+    .forEach((id) => { $(id).value = estado[id]; });
+  marcarSegmentado("cenario", estado.cenario);
+  marcarSegmentado("metodo", estado.metodo);
+  document.querySelectorAll("[data-metodo]").forEach((el) => { el.hidden = el.dataset.metodo !== estado.metodo; });
+  $("metodoNota").textContent = estado.metodo === "top"
+    ? "Partes do valor total do mercado (de um relatório) e filtras."
+    : "Constróis o mercado: clientes × receita por cliente. TAM inicial = " + fmt(tamInicial()) + ".";
+  $("setorNota").textContent = estado.setor === "custom"
+    ? "Preenche os campos com os teus próprios números."
+    : "Ao escolher um setor carregas valores de exemplo. Ajusta-os com dados reais.";
+}
+
+function marcarSegmentado(id, valor) {
+  $(id).querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === valor)));
+}
+
+function desenhar() {
+  const { linhas, g, q1, q2 } = calcular();
+  const ver = Math.min(Math.max(estado.anoVer, estado.anoIni), estado.anoFim);
+  estado.anoVer = ver;
+  const atual = linhas.find((l) => l.ano === ver) || linhas[linhas.length - 1];
+
+  // Seletor de ano
+  const slider = $("anoVer");
+  slider.min = estado.anoIni; slider.max = estado.anoFim; slider.value = ver;
+  slider.disabled = estado.anoIni === estado.anoFim;
+  $("anoVerTxt").textContent = ver;
+
+  // Números grandes
+  $("vTam").textContent = fmt(atual.tam);
+  $("vSam").textContent = fmt(atual.sam);
+  $("vSom").textContent = fmt(atual.som);
+  $("rTam").textContent = "Cresce " + pct(g) + " ao ano";
+  $("rSam").textContent = (atual.tam ? pct(atual.sam / atual.tam) : "0%") + " do TAM";
+  $("rSom").textContent = pct(atual.quota, 2) + " do SAM";
+
+  // Mini gráficos de tendência (cada um na sua escala)
+  sparkline("sTam", linhas.map((l) => l.tam), ver - estado.anoIni);
+  sparkline("sSam", linhas.map((l) => l.sam), ver - estado.anoIni);
+  sparkline("sSom", linhas.map((l) => l.som), ver - estado.anoIni);
+
+  desenharCirculos(atual);
+  desenharTabela(linhas, ver);
+  desenharAvisos(linhas, g, q1, q2);
+}
+
+/* Linha de tendência com área e ponto no ano escolhido */
+function sparkline(id, valores, iAtivo) {
+  const svg = $(id), W = 160, H = 38, p = 4;
+  const max = Math.max(...valores), min = Math.min(...valores);
+  const span = max - min || 1;
+  const x = (i) => valores.length === 1 ? W / 2 : p + (i * (W - 2 * p)) / (valores.length - 1);
+  const y = (v) => H - p - ((v - min) / span) * (H - 2 * p);
+  const pts = valores.map((v, i) => `${x(i)},${y(v)}`).join(" ");
+  const area = `${x(0)},${H} ${pts} ${x(valores.length - 1)},${H}`;
+  svg.innerHTML =
+    `<polygon points="${area}" fill="#74D1EF" fill-opacity="0.15"></polygon>` +
+    `<polyline points="${pts}" fill="none" stroke="#74D1EF" stroke-width="2" vector-effect="non-scaling-stroke"></polyline>` +
+    `<circle cx="${x(iAtivo)}" cy="${y(valores[iAtivo])}" r="3.5" fill="#F6F6F6" stroke="#74D1EF" stroke-width="2" vector-effect="non-scaling-stroke"></circle>`;
+}
+
+/* Círculos encaixados, área proporcional ao valor */
+function desenharCirculos(l) {
+  const R = 124, base = 254;
+  const rS = l.tam ? Math.max(18, R * Math.sqrt(l.sam / l.tam)) : 18;
+  const rO = l.tam ? Math.max(7, R * Math.sqrt(l.som / l.tam)) : 7;
+  const c = (r, fill, stroke) => `<circle cx="130" cy="${base - r}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="1.5"></circle>`;
+  const t = (txt, y, cor) => `<text x="130" y="${y}" text-anchor="middle" font-family="Montserrat, sans-serif" font-size="13" font-weight="800" fill="${cor}" letter-spacing="1">${txt}</text>`;
+  let svg = c(R, "#E2EEFF", "#C9DAEE") + c(rS, "#B9D6F2", "#4D85C2") + c(rO, "#74D1EF", "#0944A1");
+  svg += t("TAM", base - 2 * R + 22, "#175FAA");
+  if (rS > 40) svg += t("SAM", base - 2 * rS + 20, "#0944A1");
+  if (rO > 22) svg += t("SOM", base - rO + 5, "#0944A1");
+  $("circulos").innerHTML = svg;
+
+  $("leitura").innerHTML = [
+    ["#E2EEFF", "TAM", fmt(l.tam), "toda a procura do setor, se tivesses 100% de quota."],
+    ["#B9D6F2", "SAM", fmt(l.sam), "a procura em " + nomes(estado.regioes, REGIOES) + ", junto de " + nomes(estado.publico, PUBLICOS).toLowerCase() + "."],
+    ["#74D1EF", "SOM", fmt(l.som), "a receita realista que podes ganhar em " + l.ano + "."]
+  ].map(([cor, s, v, d]) =>
+    `<li><span class="ponto" style="background:${cor};border:1px solid #4D85C2"></span><span><strong>${s} · ${v}</strong><br>${d}</span></li>`
+  ).join("");
+}
+
+function desenharTabela(linhas, ver) {
+  $("tabela").innerHTML = linhas.map((l) =>
+    `<tr class="${l.ano === ver ? "ativo" : ""}"><td>${l.ano}</td><td>${fmt(l.tam)}</td><td>${fmt(l.sam)}</td><td>${pct(l.quota, 2)}</td><td>${fmt(l.som)}</td></tr>`
+  ).join("");
+}
+
+/* Regras práticas para apanhar pressupostos exagerados */
+function desenharAvisos(linhas, g, q1, q2) {
+  const avisos = [];
+  const primeiro = linhas[0];
+  if (q1 > 0.05) avisos.push("Quota de " + pct(q1) + " no 1.º ano é alta. Um negócio novo costuma começar abaixo de 1 a 5% do SAM.");
+  if (q2 > 0.2) avisos.push("Quota final de " + pct(q2) + " do SAM exige liderar o segmento. Justifica com tração ou vantagem clara.");
+  if (g > 0.3) avisos.push("Crescimento de " + pct(g) + " ao ano durante vários anos é raro. Confirma a fonte.");
+  if (primeiro.tam && primeiro.sam / primeiro.tam > 0.5) avisos.push("O SAM é mais de metade do TAM. Os filtros de geografia e segmento são mesmo tão largos?");
+  if (q2 < q1) avisos.push("A quota desce ao longo do período. Faz sentido se esperas perder clientes para concorrentes.");
+  if (estado.anoFim - estado.anoIni > 10) avisos.push("Projeções a mais de 10 anos têm muita incerteza. Usa-as só como ordem de grandeza.");
+  if (primeiro.tam && !primeiro.sam) avisos.push("O SAM está a zero. Escolhe pelo menos uma região e um público-alvo.");
+  if (!primeiro.tam) avisos.push("O TAM está a zero. Preenche o valor do mercado ou os clientes e a receita por cliente.");
+
+  $("avisos").innerHTML = avisos.length
+    ? avisos.map((a) => `<li class="aviso">${a}</li>`).join("")
+    : `<li class="ok">Os pressupostos estão dentro de intervalos habituais. Falta validá-los com fontes reais.</li>`;
+}
+
+/* ===== Exportar ===== */
+function textoResumo() {
+  const { linhas } = calcular();
+  const l = linhas.find((x) => x.ano === estado.anoVer);
+  return [
+    "Radar de Mercado (JUNITEC)",
+    "Setor: " + SETORES[estado.setor].nome + " | Cenário: " + CENARIOS[estado.cenario].nome + " | Método: " + (estado.metodo === "top" ? "top-down" : "bottom-up"),
+    "Período: " + estado.anoIni + "–" + estado.anoFim + " | Ano em análise: " + l.ano,
+    "Regiões: " + nomes(estado.regioes, REGIOES) + " (" + estado.geo + "% da procura mundial)",
+    "Público-alvo: " + nomes(estado.publico, PUBLICOS) + " (" + estado.seg + "% da procura do setor)",
+    "TAM: " + fmt(l.tam),
+    "SAM: " + fmt(l.sam) + " (" + pct(l.sam / (l.tam || 1)) + " do TAM)",
+    "SOM: " + fmt(l.som) + " (" + pct(l.quota, 2) + " do SAM)",
+    estado.setor === "custom" ? "" : "Nota: inclui valores de exemplo, não dados reais."
+  ].filter(Boolean).join("\n");
+}
+
+function textoCsv() {
+  const { linhas } = calcular();
+  const n = (x) => x.toLocaleString("pt-PT", { maximumFractionDigits: 3, useGrouping: false });
+  return ["Ano;TAM (M€);SAM (M€);Quota (%);SOM (M€)"]
+    .concat(linhas.map((l) => [l.ano, n(l.tam), n(l.sam), n(l.quota * 100), n(l.som)].join(";")))
+    .join("\n");
+}
+
+async function copiar(texto, ok) {
+  try { await navigator.clipboard.writeText(texto); mostrarMsg(ok); }
+  catch (e) { mostrarMsg("Não foi possível copiar automaticamente. Seleciona a tabela e copia à mão."); }
+}
+
+function exportarCsv() {
+  const csv = textoCsv();
+  // Descarrega o ficheiro (funciona no GitHub Pages) e copia como alternativa
+  try {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+    a.download = "tam-sam-som.csv";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  } catch (e) {}
+  copiar(csv, "CSV descarregado e copiado. Podes colar no Excel ou Google Sheets.");
+}
+
+let temporizador;
+function mostrarMsg(t) {
+  $("msg").textContent = t;
+  clearTimeout(temporizador);
+  temporizador = setTimeout(() => { $("msg").textContent = ""; }, 4000);
+}
+
+/* ===== Eventos ===== */
+function ligarEventos() {
+  $("setor").addEventListener("change", (e) => {
+    estado.setor = e.target.value;
+    Object.assign(estado, copiaSetor(estado.setor));
+    atualizar(true);
+  });
+
+  ["tam0", "clientes", "preco", "cagr", "geo", "seg", "q1", "q2"].forEach((id) =>
+    $(id).addEventListener("input", (e) => { estado[id] = e.target.value; atualizar(false); })
+  );
+
+  ["anoIni", "anoFim"].forEach((id) =>
+    $(id).addEventListener("change", (e) => {
+      let v = Math.round(num(e.target.value)) || new Date().getFullYear();
+      estado[id] = Math.min(2060, Math.max(2000, v));
+      if (estado.anoFim < estado.anoIni) {
+        if (id === "anoIni") estado.anoFim = estado.anoIni; else estado.anoIni = estado.anoFim;
+      }
+      if (estado.anoFim - estado.anoIni > 20) estado.anoFim = estado.anoIni + 20; // limite de 20 anos
+      estado.anoVer = estado.anoFim;
+      atualizar(true);
+    })
+  );
+
+  // Regiões e público-alvo: ligar/desligar e recalcular a percentagem
+  [["regioes", REGIOES, "geo"], ["publico", PUBLICOS, "seg"]].forEach(([id, tabela, campo]) =>
+    $(id).addEventListener("click", (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      const lista = estado[id];
+      const i = lista.indexOf(b.dataset.v);
+      if (i >= 0) lista.splice(i, 1); else lista.push(b.dataset.v);
+      estado[campo] = somaPesos(lista, tabela);
+      atualizar(true);
+    })
+  );
+
+  ["cenario", "metodo"].forEach((id) =>
+    $(id).addEventListener("click", (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      estado[id] = b.dataset.v;
+      atualizar(true);
+    })
+  );
+
+  $("anoVer").addEventListener("input", (e) => { estado.anoVer = Number(e.target.value); guardar(); desenhar(); });
+  $("btnCopiar").addEventListener("click", () => copiar(textoResumo(), "Resultado copiado. Cola no relatório."));
+  $("btnCsv").addEventListener("click", exportarCsv);
+  $("btnRepor").addEventListener("click", () => { estado = estadoInicial(); atualizar(true); mostrarMsg("Exemplo reposto."); });
+  $("form").addEventListener("submit", (e) => e.preventDefault());
+}
+
+function atualizar(reescrever) {
+  if (reescrever) escreverFormulario();
+  else if (estado.metodo === "bottom") escreverFormularioNota();
+  $("etiquetaExemplo").hidden = estado.setor === "custom";
+  guardar();
+  desenhar();
+}
+
+function escreverFormularioNota() {
+  $("metodoNota").textContent = "Constróis o mercado: clientes × receita por cliente. TAM inicial = " + fmt(tamInicial()) + ".";
+}
+
+/* ===== Arranque ===== */
+preencherSetores();
+estado = carregar();
+ligarEventos();
+atualizar(true);
+</script>
+
+</body>
+</html>
